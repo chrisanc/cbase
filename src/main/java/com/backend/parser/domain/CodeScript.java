@@ -2,17 +2,20 @@ package com.backend.parser.domain;
 
 import java.util.List;
 
-public final class CodeScript {
-    private String path;
-    private String name;
-    private List<String> content;
+public class CodeScript {
+    private final String path;
+    private final String name;
+    private final String content;
+    private List<Method> methods;
 
-    private CodeScript() {}
-
-    public CodeScript(String path, String name, List<String> content) {
+    public CodeScript(String path, String name, String content) {
         this.path = path;
         this.name = name;
         this.content = content;
+    }
+
+    public void setMethods(List<Method> methods) {
+        this.methods = methods;
     }
 
     public String getPath() {
@@ -23,7 +26,20 @@ public final class CodeScript {
         return name;
     }
 
-    public List<String> getContent() {
+    public String getContent() {
         return content;
+    }
+
+    public List<Method> getMethods() {
+        return methods;
+    }
+
+    @Override
+    public String toString() {
+        return "CodeScript {\n" +
+                "Path: " + this.path +
+                "\nName: " + this.name +
+                "\nMethods: " + this.methods +
+                "\n}";
     }
 }

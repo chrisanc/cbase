@@ -2,6 +2,7 @@ package com.backend.parser.adapters;
 
 import com.backend.parser.domain.CodeScript;
 import com.backend.parser.ports.Parser;
+import com.backend.parser.ports.SyntaxTree;
 
 import java.io.*;
 import java.util.*;
@@ -59,25 +60,33 @@ public final class ParserImpl implements Parser {
     }
 
     /**
-     * Parse method parses a file and extracts its information
+     * Parse method parses a file and extracts its information. Virtual Threads.
      * Uses AST implementations for this.
      * */
     @Override
     public void parse(List<CodeScript> scripts) {
-        System.out.println(scripts.size());
+        for (CodeScript script : scripts) {
+            Thread.ofVirtual().start(
+                () -> {
+                    SyntaxTree tree = this.getSyntaxTree("java");
+                    if (tree != null) tree.analyze(script);
+                }
+            );
+        }
     }
 
     /**
      * Function used to extract the content of a script.
-     * This can be done returning a String or List<String> (depends)
+     * This can be done returning a String or List of Strings (depends)
      * */
-    private List<String> readFileContent(String path) {
-        List<String> content = new ArrayList<>();
+    private String readFileContent(String path) {
+        StringBuilder builder = new StringBuilder();
 
+        // Read the script lines
         try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                content.add(line);
+                builder.append(line);
             }
         } catch (FileNotFoundException e) {
             System.err.println("Error reading the file: The file doesn't exists at this path.");
@@ -85,6 +94,18 @@ public final class ParserImpl implements Parser {
             System.err.println("Error reading the file...");
         }
 
-        return content;
+        return builder.toString();
+    }
+
+    /**
+     * Returns the SyntaxTree implementation to use.
+     * Depends on the programming language the script was written in.
+     * */
+    private SyntaxTree getSyntaxTree(String ext) {
+        return switch (ext) {
+            case "java" -> new JavaTreeImpl();
+            case "py" -> null;
+            default -> null;
+        };
     }
 }

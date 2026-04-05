@@ -14,6 +14,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     // Source: https://mvnrepository.com/artifact/info.picocli/picocli
     implementation("info.picocli:picocli:4.7.6")
+    // Source: https://mvnrepository.com/artifact/com.github.javaparser/javaparser-core
+    implementation("com.github.javaparser:javaparser-core:3.28.0")
 }
 
 tasks.test {

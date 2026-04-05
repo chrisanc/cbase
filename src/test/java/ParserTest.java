@@ -1,4 +1,5 @@
 import com.backend.parser.adapters.ParserImpl;
+import com.backend.parser.adapters.JavaTreeImpl;
 import com.backend.parser.domain.CodeScript;
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +10,7 @@ public class ParserTest {
     public void testParser() {
         ParserImpl parser = new ParserImpl();
         List<CodeScript> scripts = parser.readFileSystem();
-        parser.parse(scripts);
+        JavaTreeImpl impl = new JavaTreeImpl();
+        impl.analyze(scripts.getFirst());
     }
 }
