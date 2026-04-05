@@ -14,13 +14,13 @@ public final class ParserImpl implements Parser {
     // Define a list of directories to avoid (noise)
     private final HashSet<String> dirsToAvoid;
     // Define a regex pattern for valid scripts
-    private final Pattern validScriptPatt;
+    private final Pattern validScriptPattern;
     public ParserImpl() {
         this.workingDir = System.getProperty("user.dir");
         this.dirsToAvoid = new HashSet<>(Set.of(
                 ".git", "build", ".gradle", "__pycache__", "__init__"
         ));
-        this.validScriptPatt = Pattern.compile(".*\\.(java)");
+        this.validScriptPattern = Pattern.compile(".*\\.(java)");
     }
 
     /**
@@ -48,7 +48,7 @@ public final class ParserImpl implements Parser {
                     continue;
                 }
                 // Manage the files
-                if (this.validScriptPatt.matcher(f.getName()).matches()) {
+                if (this.validScriptPattern.matcher(f.getName()).matches()) {
                     scripts.add(
                             new CodeScript(f.getPath(), f.getName(), this.readFileContent(f.getPath()))
                     );
@@ -103,7 +103,7 @@ public final class ParserImpl implements Parser {
      * */
     private SyntaxTree getSyntaxTree(String ext) {
         return switch (ext) {
-            case "java" -> new JavaTreeImpl();
+            case "java" -> JavaTreeImpl.getInstance();
             case "py" -> null;
             default -> null;
         };

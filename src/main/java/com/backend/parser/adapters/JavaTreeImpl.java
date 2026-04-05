@@ -15,6 +15,14 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class JavaTreeImpl implements SyntaxTree {
+    private static JavaTreeImpl instance;
+    private JavaTreeImpl() {}
+
+    public static JavaTreeImpl getInstance() {
+        if (instance == null) instance = new JavaTreeImpl();
+        return instance;
+    }
+
     @Override
     public void analyze(CodeScript script) {
         // Execute the AST parsing on the code (Java)

@@ -1,3 +1,4 @@
+import com.backend.ai.adapters.VectorDBImpl;
 import com.backend.parser.adapters.ParserImpl;
 import com.backend.parser.adapters.JavaTreeImpl;
 import com.backend.parser.domain.CodeScript;
@@ -10,7 +11,10 @@ public class ParserTest {
     public void testParser() {
         ParserImpl parser = new ParserImpl();
         List<CodeScript> scripts = parser.readFileSystem();
-        JavaTreeImpl impl = new JavaTreeImpl();
+        JavaTreeImpl impl = JavaTreeImpl.getInstance();
         impl.analyze(scripts.getFirst());
+
+        VectorDBImpl db = new VectorDBImpl();
+        db.save(scripts.getFirst());
     }
 }
