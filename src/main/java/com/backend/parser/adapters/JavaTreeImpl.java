@@ -5,14 +5,15 @@ import com.backend.parser.domain.Method;
 import com.backend.parser.ports.SyntaxTree;
 import com.github.javaparser.*;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.stmt.*;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class JavaTreeImpl implements SyntaxTree {
     private static JavaTreeImpl instance;
@@ -50,27 +51,44 @@ public class JavaTreeImpl implements SyntaxTree {
 
     @Override
     public void calculateCyclicalComplexity(Method method) {
-        AtomicInteger complexity = new AtomicInteger(1);
+        int complexity = 1;
+        final var decisionStmts = new HashSet<>(Set.of(
+                ForStmt.class,
+                ForEachStmt.class,
+                WhileStmt.class,
+                IfStmt.class
+        ));
         // Define a hashset (for O(1) lookup) with the classes +1
         final var classes = new HashSet<>(Set.of(
                 BinaryExpr.class,
-                ForStmt.class,
-                IfStmt.class,
                 TryStmt.class,
-                ForEachStmt.class,
-                SwitchEntry.class,
-                WhileStmt.class
+                SwitchEntry.class
         ));
+        // Add all classes together
+        classes.addAll(decisionStmts);
         // Walk through the method body and calculate the complexity
-        method.getBody().walk(
-            node -> {
-                // Get the node class
-                var clazz = node.getClass();
-                // If the classes set contains the class
-                if (classes.contains(clazz)) complexity.set(complexity.get() + 1);
+        for (Iterator<Node> it = method.getBody().stream().iterator(); it.hasNext(); ) {
+            Node node = it.next();
+            Class<? extends Node> nodeClass = node.getClass();
+
+            if (!classes.contains(nodeClass)) continue;
+
+            if (nodeClass == BinaryExpr.class) {
+                if (
+                        node.getParentNode().isPresent() &&
+                        !decisionStmts.contains(node.getParentNode().get().getClass())
+                ) continue;
+
+                BinaryExpr.Operator op = ((BinaryExpr) node).getOperator();
+                switch (op) {
+                    case BinaryExpr.Operator.OR, BinaryExpr.Operator.AND:
+                        complexity++;
+                }
+            } else {
+                complexity++;
             }
-        );
+        }
         // Return the final complexity
-        method.setCyclicalComplexity(complexity.get());
+        method.setCyclicalComplexity(complexity);
     }
 }
