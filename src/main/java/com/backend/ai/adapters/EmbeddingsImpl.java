@@ -15,7 +15,6 @@ import com.backend.ai.ports.Embeddings;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -57,7 +56,6 @@ public class EmbeddingsImpl implements Embeddings {
             return this.meanPooling(preds);
         } catch (IOException | ModelNotFoundException | MalformedModelException | TranslateException e) {
             System.err.println("Unexpected error while creating the embedding.");
-            e.printStackTrace();
             System.exit(1);
         }
 

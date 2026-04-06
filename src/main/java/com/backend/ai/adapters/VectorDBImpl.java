@@ -1,5 +1,10 @@
 package com.backend.ai.adapters;
 
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
+import com.backend.ai.ports.Embeddings;
+import com.backend.ai.ports.Tokenizer;
 import com.backend.ai.ports.VectorDB;
 import com.backend.parser.domain.CodeScript;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -12,20 +17,30 @@ import org.apache.lucene.store.FSDirectory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 public class VectorDBImpl implements VectorDB {
     private final Directory directory = getDirectory(System.getProperty("user.dir") + "/.sentinel/db");
     private final IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
     private final IndexWriter writer = getWriter();
 
+    private final Tokenizer tokenizer = new TokenizerImpl();
+    private final Embeddings embeddings = new EmbeddingsImpl();
+
     @Override
     public void save(CodeScript script) {
         Document doc = new Document();
-        // Add the embedding to the document
-        doc.add(new KnnFloatVectorField(script.getPath(), new float[]{1.2f, 3.4f}));
+        doc.add(
+            new KnnFloatVectorField(
+                script.getPath(), embeddings.embedTokens(tokenizer.tokenize(script.getContent()))
+            )
+        );
         this.addDocument(doc);
+    }
 
-        this.closeDirectory(directory);
+    @Override
+    public void saveAll(List<CodeScript> scripts) {
+        scripts.forEach(this::save);
     }
 
     @Override
@@ -43,6 +58,16 @@ public class VectorDBImpl implements VectorDB {
         return dir;
     }
 
+    @Override
+    public void closeDir() {
+        try {
+            directory.close();
+        } catch (IOException e) {
+            System.err.println("Error closing the directory opened...");
+            System.exit(1);
+        }
+    }
+
     private IndexWriter getWriter() {
         IndexWriter writer = null;
         try {
@@ -54,15 +79,6 @@ public class VectorDBImpl implements VectorDB {
         }
 
         return writer;
-    }
-
-    private void closeDirectory(Directory dir) {
-        try {
-            dir.close();
-        } catch (IOException e) {
-            System.err.println("Error closing the directory opened...");
-            System.exit(1);
-        }
     }
 
     private void deleteAllDocuments() {

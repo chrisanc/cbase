@@ -31,7 +31,8 @@ public class Scan implements Runnable {
             this.printScripts(scripts);
         } else {
             VectorDB db = new VectorDBImpl();
-            scripts.forEach(db::save);
+            db.saveAll(scripts);
+            db.closeDir();
         }
     }
 
