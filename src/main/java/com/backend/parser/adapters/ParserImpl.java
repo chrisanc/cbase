@@ -5,6 +5,8 @@ import com.backend.parser.ports.Parser;
 import com.backend.parser.ports.SyntaxTree;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -65,36 +67,36 @@ public final class ParserImpl implements Parser {
      * */
     @Override
     public void parse(List<CodeScript> scripts) {
+        List<Thread> threads = new ArrayList<>();
         for (CodeScript script : scripts) {
-            Thread.ofVirtual().start(
+            threads.add(Thread.ofVirtual().start(
                 () -> {
                     SyntaxTree tree = this.getSyntaxTree("java");
                     if (tree != null) tree.analyze(script);
                 }
-            );
+            ));
+        }
+
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                System.err.println("A thread was interrupted...");
+            }
         }
     }
 
     /**
      * Function used to extract the content of a script.
-     * This can be done returning a String or List of Strings (depends)
+     * Using java.nio.Files readString method.
      * */
     private String readFileContent(String path) {
-        StringBuilder builder = new StringBuilder();
-
-        // Read the script lines
-        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                builder.append(line);
-            }
-        } catch (FileNotFoundException e) {
-            System.err.println("Error reading the file: The file doesn't exists at this path.");
+        try {
+            return Files.readString(Path.of(path));
         } catch (IOException e) {
             System.err.println("Error reading the file...");
         }
-
-        return builder.toString();
+        return "";
     }
 
     /**

@@ -80,6 +80,7 @@ public class VectorDBImpl implements VectorDB {
     private void addDocument(Document document) {
         try {
             writer.addDocument(document);
+            writer.commit();
         } catch (IOException e) {
             System.err.println("Error indexing a document to the database.");
         }

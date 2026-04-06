@@ -26,6 +26,10 @@ public class JavaTreeImpl implements SyntaxTree {
 
     @Override
     public void analyze(CodeScript script) {
+        // Configure Java 21 parsing
+        StaticJavaParser.setConfiguration(
+                new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21)
+        );
         // Execute the AST parsing on the code (Java)
         CompilationUnit unit = StaticJavaParser.parse(script.getContent());
         // Extract the methods information
@@ -34,7 +38,7 @@ public class JavaTreeImpl implements SyntaxTree {
                     return new Method(
                             method.getName().asString(),
                             method.getParameters(),
-                            method.getBody().isPresent() ? method.getBody().get() : null
+                            method.getBody().orElse(null)
                     );
                 }
         ).toList();
@@ -51,6 +55,8 @@ public class JavaTreeImpl implements SyntaxTree {
 
     @Override
     public void calculateCyclicalComplexity(Method method) {
+        if (method.getBody() == null) return;
+
         int complexity = 1;
         final var decisionStmts = new HashSet<>(Set.of(
                 ForStmt.class,
@@ -75,7 +81,7 @@ public class JavaTreeImpl implements SyntaxTree {
 
             if (nodeClass == BinaryExpr.class) {
                 if (
-                        node.getParentNode().isPresent() &&
+                        node.getParentNode().isEmpty() ||
                         !decisionStmts.contains(node.getParentNode().get().getClass())
                 ) continue;
 

@@ -6,7 +6,7 @@ public class ParserTest {
     @Test
     public void testParser() {
         CodeScript script = new CodeScript("root", "script",
-                "class Public { public void test() { int i = 0; switch(i) { case 0: i = 1;\ncase 1: i = 1;\ndefault: i = 100; }; } }"
+                "class Public {  public void test() { if (true) System.out.println(\"Hola\"); } }"
         );
         JavaTreeImpl impl = JavaTreeImpl.getInstance();
         impl.analyze(script);
