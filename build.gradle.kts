@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.backend"
@@ -26,8 +27,30 @@ dependencies {
     implementation("ai.djl.onnxruntime:onnxruntime-engine")
     // Source: https://mvnrepository.com/artifact/ai.djl.huggingface/tokenizers
     implementation("ai.djl.huggingface:tokenizers")
+    // MANIFEST configuration
+    implementation("junit:junit:3.8.2")
 }
-
 tasks.test {
     useJUnitPlatform()
+}
+
+/*
+* JAR configurations to avoid overwriting of manifests.
+* */
+tasks.jar {
+    enabled = false
+}
+
+tasks.build {
+    dependsOn(tasks.shadowJar)
+}
+
+tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
+    mergeServiceFiles()
+    archiveBaseName.set("cbase")
+    archiveVersion.set("1.0.0v")
+    archiveClassifier.set("")
+    manifest {
+        attributes["Main-Class"] = "com.backend.CBase"
+    }
 }
