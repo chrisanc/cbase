@@ -1,7 +1,12 @@
 package com.backend.ai.ports;
 
+import com.backend.ai.domain.Token;
+
 import java.util.List;
 
 public interface Embeddings {
-    List<Double> embedText(String text);
+    /**
+     * Takes raw tokens and gives them a meaning (creating embeddings)
+     * */
+    float[] embedTokens(Token tokens);
 }

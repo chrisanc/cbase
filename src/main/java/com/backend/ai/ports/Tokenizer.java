@@ -1,5 +1,9 @@
 package com.backend.ai.ports;
 
+import com.backend.ai.domain.Token;
+
+import java.io.IOException;
+
 public interface Tokenizer {
-    float[] tokenize(String line);
+    Token tokenize(String line);
 }
