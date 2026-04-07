@@ -1,5 +1,6 @@
 package com.backend;
 
+import com.backend.cli.commands.Query;
 import com.backend.cli.commands.Scan;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -7,7 +8,7 @@ import picocli.CommandLine.Command;
 @Command(
         name = "cbase", description = "Let CBase walk you through your project :D.",
         version = "v0.0.1 beta", footer = "Written by: Christian Sanchez. 2026.",
-        subcommands = {Scan.class}, mixinStandardHelpOptions = true
+        subcommands = {Scan.class, Query.class}, mixinStandardHelpOptions = true
 )
 public class CBase implements Runnable {
     public static void main(String[] args) {

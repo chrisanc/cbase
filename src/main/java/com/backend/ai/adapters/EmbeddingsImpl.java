@@ -14,8 +14,6 @@ import com.backend.ai.ports.Embeddings;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of embeddings based on tokens
@@ -64,21 +62,24 @@ public class EmbeddingsImpl implements Embeddings {
 
     public float[] meanPooling(NDList list) {
         // Define the array to return
-        List<Float> results = new ArrayList<>();
+        float[] embedding = new float[384];
         // Remove the batch dim (example: from (1, 4, 384) to (4, 384))
         // Useful because we need to iterate over the tokens embeddings
         try (NDArray arr = list.getFirst().squeeze()) {
             // Iterate through the first dimension (rows)
             long amountTokens = arr.getShape().get(0);
-            for (int i = 0; i < amountTokens; i++) {
-                results.add((arr.get(i).mean().getFloat()) / amountTokens);
-            }
-        }
+            long arrDim = arr.getShape().get(1);
+            // Compact (pooling) the array where each position in the embedding
+            // is equal to the average of each token in that pos (4, 384) -> (1, 384)
+            for (int cols = 0; cols < arrDim; cols++) {
+                float sum = 0;
+                // Sum per column
+                for (int rows = 0; rows < amountTokens; rows++) {
+                    sum += arr.get(rows).get(cols).getFloat();
+                }
 
-        // Explicitly cast from List<Float> to float[] (no FloatStream available)
-        float[] embedding = new float[results.size()];
-        for (int i = 0; i < results.size(); i++) {
-            embedding[i] = results.get(i);
+                embedding[cols] = sum / amountTokens;
+            }
         }
 
         return embedding;

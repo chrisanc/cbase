@@ -1,17 +1,16 @@
 package com.backend.ai.adapters;
 
-import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.NDManager;
 import com.backend.ai.ports.Embeddings;
 import com.backend.ai.ports.Tokenizer;
 import com.backend.ai.ports.VectorDB;
 import com.backend.parser.domain.CodeScript;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.KnnFloatVectorField;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.*;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -21,7 +20,8 @@ import java.util.List;
 
 public class VectorDBImpl implements VectorDB {
     private final Directory directory = getDirectory(System.getProperty("user.dir") + "/.sentinel/db");
-    private final IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
+    private final Analyzer analyzer = new StandardAnalyzer();
+    private final IndexWriterConfig config = new IndexWriterConfig(analyzer);
     private final IndexWriter writer = getWriter();
 
     private final Tokenizer tokenizer = new TokenizerImpl();
@@ -30,11 +30,15 @@ public class VectorDBImpl implements VectorDB {
     @Override
     public void save(CodeScript script) {
         Document doc = new Document();
+        // Add the vector of the content
         doc.add(
             new KnnFloatVectorField(
-                script.getPath(), embeddings.embedTokens(tokenizer.tokenize(script.getContent()))
+                "embedding", embeddings.embedTokens(tokenizer.tokenize(script.getContent()))
             )
         );
+        // Add metadata to the document
+        doc.add(new StoredField("path", script.getPath()));
+        doc.add(new StoredField("content", script.getContent()));
         this.addDocument(doc);
     }
 
@@ -44,7 +48,50 @@ public class VectorDBImpl implements VectorDB {
     }
 
     @Override
-    public void lookup(String path) {}
+    public String lookup(float[] queryEmbedding) {
+        // Set 15 as the documents to retrieve
+        int k = 5;
+        StringBuilder builder = new StringBuilder();
+        try {
+            // Configure the query to execute
+            Query query = new KnnFloatVectorQuery("embedding", queryEmbedding, k);
+            IndexReader reader = DirectoryReader.open(directory);
+            IndexSearcher searcher = new IndexSearcher(reader);
+            // Execute the query with KNN
+            TopDocs docs = searcher.search(query, k);
+            // Get the stored fields from the searcher
+            StoredFields fields = searcher.storedFields();
+
+            // Iterate the top K docs
+            for (ScoreDoc doc : docs.scoreDocs) {
+                Document retrievedDoc = fields.document(doc.doc);
+                builder.append(
+                        "## **Path:**\n" + retrievedDoc.get("path") + "\n" +
+                        "## **Content:**\n" + retrievedDoc.get("content") + "\n\n"
+                );
+            }
+
+            reader.close();
+        } catch (IOException e) {
+            System.err.println("Error reading the directory with the database...");
+            System.exit(1);
+        } catch (IndexSearcher.TooManyClauses e) {
+            System.err.println("Too many clauses for the query...");
+            System.exit(1);
+        }
+
+        return builder.toString();
+    }
+
+    @Override
+    public void closeDir() {
+        try {
+            directory.close();
+        } catch (IOException e) {
+            System.err.println("Error closing the directory opened...");
+            System.exit(1);
+        }
+    }
 
     private static Directory getDirectory(String workingDir) {
         Directory dir = null;
@@ -56,16 +103,6 @@ public class VectorDBImpl implements VectorDB {
         }
 
         return dir;
-    }
-
-    @Override
-    public void closeDir() {
-        try {
-            directory.close();
-        } catch (IOException e) {
-            System.err.println("Error closing the directory opened...");
-            System.exit(1);
-        }
     }
 
     private IndexWriter getWriter() {

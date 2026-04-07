@@ -7,6 +7,6 @@ import java.util.List;
 public interface VectorDB {
     void save(CodeScript script);
     void saveAll(List<CodeScript> scripts);
-    void lookup(String path);
+    String lookup(float[] queryEmbedding);
     void closeDir();
 }
