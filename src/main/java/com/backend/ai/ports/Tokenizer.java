@@ -5,5 +5,5 @@ import com.backend.ai.domain.Token;
 import java.io.IOException;
 
 public interface Tokenizer {
-    Token tokenize(String line);
+    Token tokenize(String line, String path);
 }

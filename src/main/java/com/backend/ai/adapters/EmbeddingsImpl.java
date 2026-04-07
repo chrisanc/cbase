@@ -29,19 +29,9 @@ public class EmbeddingsImpl implements Embeddings {
         Criteria<NDList, NDList> criteria = Criteria
                 .builder()
                 .setTypes(NDList.class, NDList.class)
-                .optModelPath(Path.of("C:/Users/Christian/Downloads/minilm/"))
+                .optModelPath(Path.of("src/main/resources/models/minilm/"))
                 .optEngine("OnnxRuntime")
                 .build();
-
-        // Create tensors from raw arrays. Necessary for the embedding generation.
-        NDList inputs;
-        NDManager manager = NDManager.newBaseManager();
-        // Create Arrays with another dimension
-        NDArray ids = manager.create(tokens.getIds()).expandDims(0);
-        NDArray attentionMask = manager.create(tokens.getAttentionMask()).expandDims(0);
-        NDArray typeIds = manager.create(tokens.getTypeIds()).expandDims(0);
-        // Create a list of NDArray
-        inputs = new NDList(ids, attentionMask, typeIds);
 
         // Perform the forward-pass to get the embedding
         try (
@@ -49,7 +39,7 @@ public class EmbeddingsImpl implements Embeddings {
                 Predictor<NDList, NDList> predictor = model.newPredictor()
         ) {
             // Get predictions
-            NDList preds = predictor.predict(inputs);
+            NDList preds = predictor.predict(tokens.getNDList());
             // Apply mean pooling to get a single vector
             return this.meanPooling(preds);
         } catch (IOException | ModelNotFoundException | MalformedModelException | TranslateException e) {

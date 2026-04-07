@@ -33,7 +33,8 @@ public class VectorDBImpl implements VectorDB {
         // Add the vector of the content
         doc.add(
             new KnnFloatVectorField(
-                "embedding", embeddings.embedTokens(tokenizer.tokenize(script.getContent()))
+                "embedding",
+                    embeddings.embedTokens(tokenizer.tokenize(script.getContent(), "src/main/resources/models/minilm/tokenizer.json"))
             )
         );
         // Add metadata to the document

@@ -10,8 +10,8 @@ import java.nio.file.Path;
 
 public class TokenizerImpl implements Tokenizer {
     @Override
-    public Token tokenize(String line) {
-        try (var tokenizer = HuggingFaceTokenizer.newInstance(Path.of("C:/Users/Christian/Downloads/minilm/tokenizer.json"))) {
+    public Token tokenize(String line, String path) {
+        try (var tokenizer = HuggingFaceTokenizer.newInstance(Path.of(path))) {
             Encoding encode = tokenizer.encode(line);
             return Token
                 .builder()

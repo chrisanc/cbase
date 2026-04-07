@@ -1,5 +1,9 @@
 package com.backend.ai.domain;
 
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
+
 public class Token {
     long[] ids;
     long[] attentionMask;
@@ -21,6 +25,17 @@ public class Token {
 
     public long[] getTypeIds() {
         return this.typeIds;
+    }
+
+    public NDList getNDList() {
+        // Create tensors from raw arrays. Necessary for the embedding generation.
+        NDManager manager = NDManager.newBaseManager();
+        // Create Arrays with another dimension
+        NDArray ids = manager.create(this.getIds()).expandDims(0);
+        NDArray attentionMask = manager.create(this.getAttentionMask()).expandDims(0);
+        NDArray typeIds = manager.create(this.getTypeIds()).expandDims(0);
+        // Create a list of NDArray
+        return new NDList(ids, attentionMask, typeIds);
     }
 
     public static Builder builder() {

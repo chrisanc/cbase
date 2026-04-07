@@ -8,7 +8,7 @@ public class TokenizerTest {
     @Test
     public void testTokenizer() {
         TokenizerImpl tokenizer = new TokenizerImpl();
-        var token = tokenizer.tokenize("Hello World how are you doing");
+        var token = tokenizer.tokenize("Hello World how are you doing", "src/main/resources/models/minilm/tokenizer.json");
         EmbeddingsImpl embeddings = new EmbeddingsImpl();
         System.out.println(Arrays.toString(embeddings.embedTokens(token)));
     }
