@@ -7,6 +7,7 @@ import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import com.backend.ai.domain.Token;
 import com.backend.ai.ports.Tokenizer;
+import com.backend.types.FilePath;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +42,9 @@ public class TranslatorImpl implements Translator<String, String>{
      */
     @Override
     public NDList processInput(TranslatorContext ctx, String input) throws Exception {
-        Token token = tokenizer.tokenize(input, "src/main/resources/models/qwen/tokenizer.json");
+        Token token = tokenizer.tokenize(
+                input, FilePath.LOCAL_CACHE.getValue("models", "qwen", "tokenizer.json").toString()
+        );
         return token.getNDList();
     }
 

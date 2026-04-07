@@ -1,5 +1,6 @@
 package com.backend.ai.adapters;
 
+import com.backend.types.FilePath;
 import com.backend.ai.ports.Embeddings;
 import com.backend.ai.ports.Tokenizer;
 import com.backend.ai.ports.VectorDB;
@@ -19,7 +20,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class VectorDBImpl implements VectorDB {
-    private final Directory directory = getDirectory(System.getProperty("user.dir") + "/.sentinel/db");
+    private final Directory directory = getDirectory(FilePath.WDIR_CACHE.getValue("db").toString());
     private final Analyzer analyzer = new StandardAnalyzer();
     private final IndexWriterConfig config = new IndexWriterConfig(analyzer);
     private final IndexWriter writer = getWriter();
@@ -34,7 +35,11 @@ public class VectorDBImpl implements VectorDB {
         doc.add(
             new KnnFloatVectorField(
                 "embedding",
-                    embeddings.embedTokens(tokenizer.tokenize(script.getContent(), "src/main/resources/models/minilm/tokenizer.json"))
+                    embeddings.embedTokens(tokenizer.tokenize(
+                            script.getContent(),
+                            FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json").toString()
+                        )
+                    )
             )
         );
         // Add metadata to the document

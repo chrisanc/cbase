@@ -4,16 +4,15 @@ import ai.djl.MalformedModelException;
 import ai.djl.inference.Predictor;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.NDManager;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.translate.TranslateException;
 import com.backend.ai.domain.Token;
 import com.backend.ai.ports.Embeddings;
+import com.backend.types.FilePath;
 
 import java.io.IOException;
-import java.nio.file.Path;
 
 /**
  * Implementation of embeddings based on tokens
@@ -29,7 +28,7 @@ public class EmbeddingsImpl implements Embeddings {
         Criteria<NDList, NDList> criteria = Criteria
                 .builder()
                 .setTypes(NDList.class, NDList.class)
-                .optModelPath(Path.of("src/main/resources/models/minilm/"))
+                .optModelPath(FilePath.LOCAL_CACHE.getValue("models", "minilm"))
                 .optEngine("OnnxRuntime")
                 .build();
 

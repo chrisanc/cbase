@@ -15,11 +15,11 @@ import com.backend.ai.domain.Token;
 import com.backend.ai.ports.Embeddings;
 import com.backend.ai.ports.Tokenizer;
 import com.backend.ai.ports.VectorDB;
+import com.backend.types.FilePath;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Command;
 
 import java.io.IOException;
-import java.nio.file.Path;
 
 @Command(
         name = "query", description = "Executes a query about the codebase using a LLM. Must be in format \"query\"."
@@ -37,7 +37,9 @@ public class Query implements Runnable {
     @Override
     public void run() {
         // Tokenize and embed the query
-        Token token = tokenizer.tokenize(query, "src/main/resources/models/minilm/tokenizer.json");
+        Token token = tokenizer.tokenize(
+                query, FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json").toString()
+        );
         float[] embedding = embeddings.embedTokens(token);
         // Generate the context for our coder LLM
         String res = database.lookup(embedding);
@@ -53,7 +55,7 @@ public class Query implements Runnable {
         Criteria<String, String> qwen = Criteria
                 .builder()
                 .setTypes(String.class, String.class)
-                .optModelPath(Path.of("src/main/resources/models/qwen/"))
+                .optModelPath(FilePath.LOCAL_CACHE.getValue("models", "qwen"))
                 .optEngine("OnnxRuntime")
                 .optProgress(new ProgressBar())
                 .optTranslator(new TranslatorImpl())

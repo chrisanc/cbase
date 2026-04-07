@@ -1,5 +1,6 @@
 package com.backend.downloader.domain;
 
+import com.backend.types.FilePath;
 import com.backend.downloader.ports.FileDownloader;
 
 import java.io.IOException;
@@ -32,7 +33,7 @@ public enum ModelURL {
 
     public void download(FileDownloader downloader) throws IOException {
         // Define the model directory path to save the files
-        Path folderName = Path.of(System.getProperty("user.home"), "/.cbase/models/", this.toString().toLowerCase());
+        Path folderName = FilePath.LOCAL_CACHE.getValue("models", this.toString().toLowerCase());
         System.out.printf("About to download %d files for the %s model.\n", this.values.length, this.toString());
 
         for (String from : this.getValues()) {
