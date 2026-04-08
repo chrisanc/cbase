@@ -10,17 +10,17 @@ import java.nio.file.Path;
 
 public class TokenizerImpl implements Tokenizer {
     @Override
-    public Token tokenize(String line, String path) {
-        try (var tokenizer = HuggingFaceTokenizer.newInstance(Path.of(path))) {
-            Encoding encode = tokenizer.encode(line);
+    public Token tokenize(String content, Path modelPath) {
+        try (var tokenizer = HuggingFaceTokenizer.newInstance(modelPath)) {
+            Encoding encode = tokenizer.encode(content);
             return Token
-                .builder()
-                .ids(encode.getIds())
-                .attentionMask(encode.getAttentionMask())
-                .typeIds(encode.getTypeIds())
-                .build();
+                    .builder()
+                    .ids(encode.getIds())
+                    .attentionMask(encode.getAttentionMask())
+                    .typeIds(encode.getTypeIds())
+                    .build();
         } catch (IOException e) {
-            System.err.println("Couldn't get the tokens from the phrase '" + line + "'");
+            System.err.println("Couldn't get the tokens from the phrase '" + content + "'");
             System.exit(1);
         }
 

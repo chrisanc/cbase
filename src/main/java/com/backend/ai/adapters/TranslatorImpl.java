@@ -42,8 +42,8 @@ public class TranslatorImpl implements Translator<String, String>{
      */
     @Override
     public NDList processInput(TranslatorContext ctx, String input) throws Exception {
-        Token token = tokenizer.tokenize(
-                input, FilePath.LOCAL_CACHE.getValue("models", "qwen", "tokenizer.json").toString()
+        Token token = this.tokenizer.tokenize(
+                input, FilePath.LOCAL_CACHE.getValue("models", "qwen", "tokenizer.json")
         );
         return token.getNDList();
     }

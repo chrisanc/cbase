@@ -37,7 +37,7 @@ public class VectorDBImpl implements VectorDB {
                 "embedding",
                     embeddings.embedTokens(tokenizer.tokenize(
                             script.getContent(),
-                            FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json").toString()
+                            FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json")
                         )
                     )
             )

@@ -1,76 +1,66 @@
 package com.backend.ai.adapters;
 
-import ai.djl.MalformedModelException;
-import ai.djl.inference.Predictor;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
-import ai.djl.repository.zoo.Criteria;
-import ai.djl.repository.zoo.ModelNotFoundException;
-import ai.djl.repository.zoo.ZooModel;
-import ai.djl.translate.TranslateException;
+import ai.djl.ndarray.NDManager;
 import com.backend.ai.domain.Token;
 import com.backend.ai.ports.Embeddings;
+import com.backend.ai.ports.LLM;
 import com.backend.types.FilePath;
-
-import java.io.IOException;
 
 /**
  * Implementation of embeddings based on tokens
  * Using Java Deep Learning framework
  * */
 public class EmbeddingsImpl implements Embeddings {
+    // Load the model in-memory (model-in, model-out types)
+    private final LLM<NDList, NDList> llm = new LLMImpl<>(
+            NDList.class, NDList.class, FilePath.LOCAL_CACHE.getValue("models", "minilm"), null
+    );
     /**
      * Takes raw tokens and gives them a meaning (creating embeddings)
      */
     @Override
     public float[] embedTokens(Token tokens) {
-        // Load the model in-memory (model-in, model-out types)
-        Criteria<NDList, NDList> criteria = Criteria
-                .builder()
-                .setTypes(NDList.class, NDList.class)
-                .optModelPath(FilePath.LOCAL_CACHE.getValue("models", "minilm"))
-                .optEngine("OnnxRuntime")
-                .build();
+        // Create tensors from raw arrays. Necessary for the embedding generation.
+        NDList inputs = this.buildTensor(tokens.getIds(), tokens.getAttentionMask(), tokens.getTypeIds());
 
-        // Perform the forward-pass to get the embedding
-        try (
-                ZooModel<NDList, NDList> model = criteria.loadModel();
-                Predictor<NDList, NDList> predictor = model.newPredictor()
-        ) {
-            // Get predictions
-            NDList preds = predictor.predict(tokens.getNDList());
-            // Apply mean pooling to get a single vector
-            return this.meanPooling(preds);
-        } catch (IOException | ModelNotFoundException | MalformedModelException | TranslateException e) {
-            System.err.println("Unexpected error while creating the embedding.");
-            System.exit(1);
-        }
+        NDList predictions = this.llm.predict(inputs);
 
-        return new float[0];
+        return this.meanPooling(predictions, 384);
     }
 
-    public float[] meanPooling(NDList list) {
-        // Define the array to return
-        float[] embedding = new float[384];
-        // Remove the batch dim (example: from (1, 4, 384) to (4, 384))
-        // Useful because we need to iterate over the tokens embeddings
-        try (NDArray arr = list.getFirst().squeeze()) {
-            // Iterate through the first dimension (rows)
+    @Override
+    public float[] meanPooling(NDList tensor, int vectorSize) {
+        // Define a fixed-size vector
+        float[] embedding = new float[vectorSize];
+        // Remove singleton dims, keeping the important ones
+        try (NDArray arr = tensor.getFirst().squeeze()) {
             long amountTokens = arr.getShape().get(0);
-            long arrDim = arr.getShape().get(1);
-            // Compact (pooling) the array where each position in the embedding
-            // is equal to the average of each token in that pos (4, 384) -> (1, 384)
-            for (int cols = 0; cols < arrDim; cols++) {
+            // Get the sum per column, where 'amountTokens' are the rows
+            for (int j = 0; j < vectorSize; j++) {
                 float sum = 0;
-                // Sum per column
-                for (int rows = 0; rows < amountTokens; rows++) {
-                    sum += arr.get(rows).get(cols).getFloat();
+                for (int i = 0; i < amountTokens; i++) {
+                    sum += arr.get(i).get(j).getFloat();
                 }
 
-                embedding[cols] = sum / amountTokens;
+                embedding[j] = sum / amountTokens;
             }
         }
 
         return embedding;
+    }
+
+    private NDList buildTensor(long[]... arrays) {
+        NDList tensor = new NDList();
+        try (NDManager manager = NDManager.newBaseManager()) {
+            for (long[] arr : arrays) {
+                NDArray ndArr = manager.create(arr).expandDims(0);
+                ndArr.detach();
+                tensor.add(ndArr);
+            }
+        }
+        tensor.detach();
+        return tensor;
     }
 }
