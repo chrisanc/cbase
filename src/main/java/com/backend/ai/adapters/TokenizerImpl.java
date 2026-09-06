@@ -26,4 +26,14 @@ public class TokenizerImpl implements Tokenizer {
 
         return null;
     }
+
+    @Override
+    public String decode(long[] tokens, Path modelPath) {
+        try (var tokenizer = HuggingFaceTokenizer.newInstance(modelPath)) {
+            return tokenizer.decode(tokens);
+        } catch (IOException e) {
+            System.err.println("Error decoding tokens using model at: " + modelPath);
+            return "";
+        }
+    }
 }

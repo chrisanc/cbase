@@ -22,6 +22,7 @@ public class EmbeddingsImpl implements Embeddings {
      */
     @Override
     public float[] embedTokens(Token tokens) {
+        com.backend.downloader.domain.ModelURL.MINILM.verifyOrDownload(new com.backend.downloader.adapters.FileDownloaderImpl());
         // Create tensors from raw arrays. Necessary for the embedding generation.
         NDList inputs = this.buildTensor(tokens.getIds(), tokens.getAttentionMask(), tokens.getTypeIds());
 
@@ -32,23 +33,12 @@ public class EmbeddingsImpl implements Embeddings {
 
     @Override
     public float[] meanPooling(NDList tensor, int vectorSize) {
-        // Define a fixed-size vector
-        float[] embedding = new float[vectorSize];
-        // Remove singleton dims, keeping the important ones
         try (NDArray arr = tensor.getFirst().squeeze()) {
-            long amountTokens = arr.getShape().get(0);
-            // Get the sum per column, where 'amountTokens' are the rows
-            for (int j = 0; j < vectorSize; j++) {
-                float sum = 0;
-                for (int i = 0; i < amountTokens; i++) {
-                    sum += arr.get(i).get(j).getFloat();
-                }
-
-                embedding[j] = sum / amountTokens;
+            // Compute column-wise mean along dimension 0 natively
+            try (NDArray pooled = arr.mean(new int[]{0})) {
+                return pooled.toFloatArray();
             }
         }
-
-        return embedding;
     }
 
     private NDList buildTensor(long[]... arrays) {

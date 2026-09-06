@@ -102,10 +102,13 @@ public class VectorDBImpl implements VectorDB {
     private static Directory getDirectory(String workingDir) {
         Directory dir = null;
         try {
-            dir = FSDirectory.open(Path.of(workingDir));
+            Path path = Path.of(workingDir);
+            if (!java.nio.file.Files.exists(path)) {
+                java.nio.file.Files.createDirectories(path);
+            }
+            dir = FSDirectory.open(path);
         } catch (IOException e) {
-            System.err.println("Not a .sentinel found in this workdir. Forgot to run 'sentinel init'?");
-            System.exit(1);
+            System.err.println("No codebase index found at " + workingDir + ". Did you forget to run 'cbase scan -s' first?");
         }
 
         return dir;

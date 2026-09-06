@@ -25,11 +25,7 @@ public class TranslatorImpl implements Translator<String, String>{
      */
     @Override
     public void prepare(TranslatorContext ctx) throws Exception {
-        // Load the model and its json
-        Model model = ctx.getModel();
-        Path path = model.getModelPath().resolve("vocab.json");
-        // Load the vocab in the model context
-        this.vocabulary = Files.readAllLines(path);
+        // Preparation hook if model assets need pre-loading
     }
 
     /**
@@ -48,25 +44,37 @@ public class TranslatorImpl implements Translator<String, String>{
         return token.getNDList();
     }
 
-
     /**
      * Processes the output NDList to the corresponding output object.
      *
      * @param ctx  the toolkit used for post-processing
-     * @param list the output NDList after inference, usually immutable in engines like
-     *             PyTorch. @see <a href="https://github.com/deepjavalibrary/djl/issues/1774">Issue 1774</a>
+     * @param list the output NDList after inference
      * @return the output object of expected type
      * @throws Exception if an error occurs during processing output
      */
     @Override
     public String processOutput(TranslatorContext ctx, NDList list) throws Exception {
-        // Get the model tokens
-        NDArray arr = list.singletonOrThrow();
-        // Apply softmax function for probabilities and get the max
-        arr = arr.softmax(0);
-        long prediction = arr.argMax().getLong();
-        arr.close();
+        NDArray arr = list.get(0);
+        long predictedTokenId;
+        
+        long[] shape = arr.getShape().getShape();
+        if (shape.length == 3) {
+            // [batch, seq_len, vocab_size] -> last token logits
+            long seqLen = shape[1];
+            try (NDArray lastTokenLogits = arr.get(0).get(seqLen - 1)) {
+                predictedTokenId = lastTokenLogits.argMax().getLong();
+            }
+        } else if (shape.length == 2) {
+            // [seq_len, vocab_size]
+            long seqLen = shape[0];
+            try (NDArray lastTokenLogits = arr.get(seqLen - 1)) {
+                predictedTokenId = lastTokenLogits.argMax().getLong();
+            }
+        } else {
+            predictedTokenId = arr.argMax().getLong();
+        }
 
-        return vocabulary.get((int) prediction);
+        Path tokenizerPath = FilePath.LOCAL_CACHE.getValue("models", "qwen", "tokenizer.json");
+        return this.tokenizer.decode(new long[]{predictedTokenId}, tokenizerPath);
     }
 }

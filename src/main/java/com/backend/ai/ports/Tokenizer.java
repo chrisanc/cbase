@@ -7,4 +7,5 @@ import java.nio.file.Path;
 
 public interface Tokenizer {
     Token tokenize(String content, Path modelPath);
+    String decode(long[] tokens, Path modelPath);
 }

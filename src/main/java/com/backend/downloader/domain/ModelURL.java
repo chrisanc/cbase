@@ -58,6 +58,30 @@ public enum ModelURL {
         }
     }
 
+    public boolean isDownloaded() {
+        Path folderName = FilePath.LOCAL_CACHE.getValue("models", this.toString().toLowerCase());
+        for (String from : this.getValues()) {
+            String fileName = from.substring(from.lastIndexOf('/') + 1);
+            Path targetFile = Path.of(folderName.toString(), fileName);
+            if (!Files.exists(targetFile)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void verifyOrDownload(FileDownloader downloader) {
+        if (!isDownloaded()) {
+            System.out.printf("Model '%s' is missing or incomplete in local cache. Starting automatic download...\n", this.name());
+            try {
+                this.download(downloader);
+                System.out.printf("Model '%s' downloaded successfully!\n", this.name());
+            } catch (IOException e) {
+                System.err.printf("Failed to download model '%s': %s\n", this.name(), e.getMessage());
+            }
+        }
+    }
+
     private String[] getValues() {
         return this.values;
     }

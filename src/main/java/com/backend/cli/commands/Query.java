@@ -6,6 +6,7 @@ import com.backend.ai.ports.Embeddings;
 import com.backend.ai.ports.LLM;
 import com.backend.ai.ports.Tokenizer;
 import com.backend.ai.ports.VectorDB;
+import com.backend.downloader.adapters.FileDownloaderImpl;
 import com.backend.types.FilePath;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Command;
@@ -29,22 +30,39 @@ public class Query implements Runnable {
      */
     @Override
     public void run() {
+        // Auto-verify model dependencies
+        com.backend.downloader.ports.FileDownloader downloader = new FileDownloaderImpl();
+        com.backend.downloader.domain.ModelURL.MINILM.verifyOrDownload(downloader);
+
         // Tokenize and embed the query
         Token token = tokenizer.tokenize(
                 query, FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json")
         );
         float[] embedding = embeddings.embedTokens(token);
-        // Generate the context for our coder LLM
-        String res = database.lookup(embedding);
-        // Finishing the context building
-        res = "You're an senior software engineer who's the user programming mentor." +
-                "As you're already too good at this, you give the best advices to him/her." +
-                "He got some questions:\n" + query + "\n" + "The context is:" + res + "\n" +
-                "Answer it's question ONLY. The question must be related to the context and " +
-                "programming and, if it isn't, you gotta tell him/her to ask any other thing.\n" +
-                "Always answer on the same language of the query.";
+        
+        // Retrieve vector context from database
+        String context = database.lookup(embedding);
+        if (context == null || context.isBlank()) {
+            System.out.println("⚠️ No indexed codebase context found.");
+            System.out.println("Please run 'cbase scan -s' in your project root to build the vector index.");
+            return;
+        }
 
-        String pred = this.llm.predict(res);
-        System.out.println(pred);
+        System.out.println("\n🔍 Found relevant code context for your query:\n");
+        System.out.println(context);
+
+        String prompt = "You're a senior software engineer acting as a programming mentor.\n" +
+                "User Query:\n" + query + "\n\n" +
+                "Codebase Context:\n" + context + "\n" +
+                "Provide clear, actionable analysis and guidance strictly based on the context above.";
+
+        System.out.println("🤖 Generating AI advice...");
+        try {
+            com.backend.downloader.domain.ModelURL.QWEN.verifyOrDownload(downloader);
+            String pred = this.llm.predict(prompt);
+            System.out.println("\n💡 AI Advice:\n" + pred);
+        } catch (Exception e) {
+            System.err.println("Note: Qwen local LLM inference encountered an issue. Displaying retrieved context above.");
+        }
     }
 }
