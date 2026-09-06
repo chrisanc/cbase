@@ -27,28 +27,17 @@ public class Scan implements Runnable {
         Parser parser = new ParserImpl();
         List<CodeScript> scripts = parser.readFileSystem();
         parser.parse(scripts);
-        if (!this.save) {
-            this.printScripts(scripts);
-        } else {
+
+        // Render rich complexity heatmap and metrics report
+        String report = com.backend.cli.ui.ScanReportFormatter.generateReport(scripts);
+        System.out.println(report);
+
+        if (this.save) {
+            System.out.println("💾 Indexing codebase vectors into local database...");
             VectorDB db = new VectorDBImpl();
             db.saveAll(scripts);
             db.closeDir();
-        }
-    }
-
-    /**
-     * Method used to give feedback to the user about possible dangerous scripts
-     * based on metrics such as the cyclical complexity
-     * */
-    private void printScripts(List<CodeScript> scripts) {
-        for (CodeScript script : scripts) {
-            for (Method method : script.getMethods()) {
-                if (method.getCyclicalComplexity() < 10) continue;
-
-                System.out.println("POTENTIAL PROBLEM!");
-                System.out.printf("* At %s:%s\n", script.getPath(), method.getName());
-                System.out.println("  The method may be too complex.\n");
-            }
+            System.out.println("✅ Codebase vector index saved successfully to ./.cbase/db");
         }
     }
 }
