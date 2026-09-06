@@ -30,22 +30,46 @@ public class VectorDBImpl implements VectorDB {
 
     @Override
     public void save(CodeScript script) {
-        Document doc = new Document();
-        // Add the vector of the content
-        doc.add(
+        // 1. Index file-level document summary
+        Document fileDoc = new Document();
+        fileDoc.add(new StoredField("path", script.getPath()));
+        fileDoc.add(new StoredField("symbol", script.getName()));
+        fileDoc.add(new StoredField("type", "file"));
+        fileDoc.add(new StoredField("complexity", "0"));
+        fileDoc.add(new StoredField("content", script.getContent()));
+        fileDoc.add(
             new KnnFloatVectorField(
                 "embedding",
-                    embeddings.embedTokens(tokenizer.tokenize(
-                            script.getContent(),
-                            FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json")
-                        )
-                    )
+                embeddings.embedTokens(tokenizer.tokenize(
+                    script.getContent(),
+                    FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json")
+                ))
             )
         );
-        // Add metadata to the document
-        doc.add(new StoredField("path", script.getPath()));
-        doc.add(new StoredField("content", script.getContent()));
-        this.addDocument(doc);
+        this.addDocument(fileDoc);
+
+        // 2. Index method-level symbol documents
+        if (script.getMethods() != null) {
+            for (com.backend.parser.domain.Method method : script.getMethods()) {
+                String chunkText = method.toChunkText(script.getPath());
+                Document methodDoc = new Document();
+                methodDoc.add(new StoredField("path", script.getPath()));
+                methodDoc.add(new StoredField("symbol", method.getName()));
+                methodDoc.add(new StoredField("type", "method"));
+                methodDoc.add(new StoredField("complexity", String.valueOf(method.getCyclicalComplexity())));
+                methodDoc.add(new StoredField("content", chunkText));
+                methodDoc.add(
+                    new KnnFloatVectorField(
+                        "embedding",
+                        embeddings.embedTokens(tokenizer.tokenize(
+                            chunkText,
+                            FilePath.LOCAL_CACHE.getValue("models", "minilm", "tokenizer.json")
+                        ))
+                    )
+                );
+                this.addDocument(methodDoc);
+            }
+        }
     }
 
     @Override
@@ -55,35 +79,37 @@ public class VectorDBImpl implements VectorDB {
 
     @Override
     public String lookup(float[] queryEmbedding) {
-        // Set 15 as the documents to retrieve
         int k = 5;
         StringBuilder builder = new StringBuilder();
         try {
-            // Configure the query to execute
             Query query = new KnnFloatVectorQuery("embedding", queryEmbedding, k);
             IndexReader reader = DirectoryReader.open(directory);
             IndexSearcher searcher = new IndexSearcher(reader);
-            // Execute the query with KNN
             TopDocs docs = searcher.search(query, k);
-            // Get the stored fields from the searcher
             StoredFields fields = searcher.storedFields();
 
-            // Iterate the top K docs
             for (ScoreDoc doc : docs.scoreDocs) {
                 Document retrievedDoc = fields.document(doc.doc);
-                builder.append(
-                        "## **Path:**\n" + retrievedDoc.get("path") + "\n" +
-                        "## **Content:**\n" + retrievedDoc.get("content") + "\n\n"
-                );
+                String path = retrievedDoc.get("path");
+                String symbol = retrievedDoc.get("symbol");
+                String type = retrievedDoc.get("type");
+                String complexity = retrievedDoc.get("complexity");
+                String content = retrievedDoc.get("content");
+
+                builder.append("### 📄 ")
+                       .append(type != null && type.equals("method") ? "Method Symbol: `" + symbol + "` in " : "File: ")
+                       .append(path).append("\n");
+                if (complexity != null && !complexity.equals("0")) {
+                    builder.append("**Cyclomatic Complexity:** ").append(complexity).append("\n");
+                }
+                builder.append("```java\n").append(content).append("\n```\n\n");
             }
 
             reader.close();
         } catch (IOException e) {
-            System.err.println("Error reading the directory with the database...");
-            System.exit(1);
+            System.err.println("Error reading vector database index directory.");
         } catch (IndexSearcher.TooManyClauses e) {
-            System.err.println("Too many clauses for the query...");
-            System.exit(1);
+            System.err.println("Too many clauses for vector query.");
         }
 
         return builder.toString();

@@ -36,6 +36,22 @@ public class Method {
         this.cyclicalComplexity = complexity;
     }
 
+    public String toChunkText(String filePath) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("// File: ").append(filePath).append("\n");
+        sb.append("// Method: ").append(name);
+        if (params != null) {
+            sb.append("(").append(params.toString()).append(")");
+        } else {
+            sb.append("()");
+        }
+        sb.append("\n// Cyclomatic Complexity: ").append(cyclicalComplexity).append("\n");
+        if (body != null) {
+            sb.append(body.toString());
+        }
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
         return "Method {\n" +
