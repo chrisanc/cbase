@@ -13,9 +13,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-public class TranslatorImpl implements Translator<String, String>{
+/**
+ * Implementation of DJL {@link Translator} interface for pre-processing string prompts into tensors
+ * and post-processing model logit outputs into text responses.
+ */
+public class TranslatorImpl implements Translator<String, String> {
     private final Tokenizer tokenizer = new TokenizerImpl();
     private List<String> vocabulary;
+
+    /**
+     * Default constructor for TranslatorImpl.
+     */
+    public TranslatorImpl() {
+    }
 
     /**
      * Prepares the translator with the manager and model to use.

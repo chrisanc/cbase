@@ -23,6 +23,12 @@ public class Scan implements Runnable {
     private boolean save;
 
     /**
+     * Default constructor for Scan command.
+     */
+    public Scan() {
+    }
+
+    /**
      * Executes project filesystem analysis, complexity report generation, and vector indexing.
      */
     @Override

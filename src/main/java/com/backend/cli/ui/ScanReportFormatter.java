@@ -13,6 +13,12 @@ import java.util.List;
 public class ScanReportFormatter {
 
     /**
+     * Private constructor to prevent instantiation of utility class.
+     */
+    private ScanReportFormatter() {
+    }
+
+    /**
      * Value object representing a high-complexity method hotspot within a project script.
      */
     public static class Hotspot {

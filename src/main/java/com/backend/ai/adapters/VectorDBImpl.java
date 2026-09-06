@@ -19,6 +19,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Implementation of the {@link VectorDB} port using Apache Lucene for storing, indexing,
+ * and performing k-nearest neighbor (k-NN) vector similarity searches.
+ */
 public class VectorDBImpl implements VectorDB {
     private final Directory directory = getDirectory(FilePath.WDIR_CACHE.getValue("db").toString());
     private final Analyzer analyzer = new StandardAnalyzer();
@@ -28,6 +32,17 @@ public class VectorDBImpl implements VectorDB {
     private final Tokenizer tokenizer = new TokenizerImpl();
     private final Embeddings embeddings = new EmbeddingsImpl();
 
+    /**
+     * Default constructor for VectorDBImpl.
+     */
+    public VectorDBImpl() {
+    }
+
+    /**
+     * Indexes both file-level and method-level symbol documents with corresponding vector embeddings.
+     *
+     * @param script {@link CodeScript} instance containing source code and extracted methods
+     */
     @Override
     public void save(CodeScript script) {
         // 1. Index file-level document summary
@@ -72,18 +87,28 @@ public class VectorDBImpl implements VectorDB {
         }
     }
 
+    /**
+     * Indexes a list of code scripts into the vector database.
+     *
+     * @param scripts list of {@link CodeScript} objects
+     */
     @Override
     public void saveAll(List<CodeScript> scripts) {
         scripts.forEach(this::save);
     }
 
+    /**
+     * Executes k-NN similarity lookup using query embedding float array.
+     *
+     * @param queryEmbedding float array vector embedding of query
+     * @return formatted Markdown string of matching code chunks and metadata
+     */
     @Override
     public String lookup(float[] queryEmbedding) {
         int k = 5;
         StringBuilder builder = new StringBuilder();
-        try {
+        try (IndexReader reader = DirectoryReader.open(directory)) {
             Query query = new KnnFloatVectorQuery("embedding", queryEmbedding, k);
-            IndexReader reader = DirectoryReader.open(directory);
             IndexSearcher searcher = new IndexSearcher(reader);
             TopDocs docs = searcher.search(query, k);
             StoredFields fields = searcher.storedFields();
@@ -104,73 +129,88 @@ public class VectorDBImpl implements VectorDB {
                 }
                 builder.append("```java\n").append(content).append("\n```\n\n");
             }
-
-            reader.close();
         } catch (IOException e) {
-            System.err.println("Error reading vector database index directory.");
+            System.err.println("[ERROR] Error reading vector database index directory: " + e.getMessage());
         } catch (IndexSearcher.TooManyClauses e) {
-            System.err.println("Too many clauses for vector query.");
+            System.err.println("[ERROR] Too many clauses for vector query: " + e.getMessage());
         }
 
         return builder.toString();
     }
 
+    /**
+     * Closes the underlying Lucene Directory and IndexWriter resources.
+     */
     @Override
     public void closeDir() {
         try {
-            directory.close();
+            if (writer != null && writer.isOpen()) {
+                writer.close();
+            }
+            if (directory != null) {
+                directory.close();
+            }
         } catch (IOException e) {
-            System.err.println("Error closing the directory opened...");
-            System.exit(1);
+            System.err.println("[ERROR] Error closing vector database directory: " + e.getMessage());
         }
     }
 
+    /**
+     * Helper to open or create Lucene Directory at working directory path.
+     *
+     * @param workingDir path to vector DB index folder
+     * @return initialized {@link Directory} instance
+     */
     private static Directory getDirectory(String workingDir) {
-        Directory dir = null;
         try {
             Path path = Path.of(workingDir);
             if (!java.nio.file.Files.exists(path)) {
                 java.nio.file.Files.createDirectories(path);
             }
-            dir = FSDirectory.open(path);
+            return FSDirectory.open(path);
         } catch (IOException e) {
-            System.err.println("No codebase index found at " + workingDir + ". Did you forget to run 'cbase scan -s' first?");
+            System.err.println("[WARN] No codebase index found at " + workingDir + ". Did you forget to run 'cbase scan -s' first?");
+            return null;
         }
-
-        return dir;
     }
 
+    /**
+     * Helper to instantiate Lucene IndexWriter.
+     *
+     * @return initialized {@link IndexWriter}
+     */
     private IndexWriter getWriter() {
-        IndexWriter writer = null;
         try {
-            writer = new IndexWriter(directory, config);
-            return writer;
+            return new IndexWriter(directory, config);
         } catch (IOException e) {
-            System.err.println("Error getting the index writer for database purposes... Try again later.");
-            System.exit(1);
+            System.err.println("[ERROR] Error initializing IndexWriter for vector database: " + e.getMessage());
+            throw new RuntimeException("Failed to initialize IndexWriter", e);
         }
-
-        return writer;
     }
 
+    /**
+     * Deletes all documents in the vector index.
+     */
     private void deleteAllDocuments() {
         try {
-            // Create the query
             writer.deleteAll();
-            // Confirm the changes
             writer.commit();
         } catch (IOException e) {
-            System.err.println("Error deleting all the indexed embeddings...");
-            System.exit(1);
+            System.err.println("[ERROR] Error deleting indexed embeddings: " + e.getMessage());
         }
     }
 
+    /**
+     * Helper to add a Lucene Document and commit changes.
+     *
+     * @param document Lucene Document to index
+     */
     private void addDocument(Document document) {
         try {
             writer.addDocument(document);
             writer.commit();
         } catch (IOException e) {
-            System.err.println("Error indexing a document to the database.");
+            System.err.println("[ERROR] Error indexing document to vector database: " + e.getMessage());
         }
     }
 }

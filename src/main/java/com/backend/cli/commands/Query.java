@@ -30,6 +30,12 @@ public class Query implements Runnable {
     private final VectorDB database = new VectorDBImpl();
 
     /**
+     * Default constructor for Query command.
+     */
+    public Query() {
+    }
+
+    /**
      * Executes the vector similarity lookup and local LLM reasoning pipeline.
      */
     @Override

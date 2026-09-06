@@ -5,12 +5,24 @@ package com.backend.cli.ui;
  * for cyclomatic complexity metrics and heatmap progress bars.
  */
 public class ComplexityHeatmap {
+    /** ANSI reset sequence. */
     public static final String RESET = "\u001B[0m";
+    /** ANSI green color sequence for low complexity. */
     public static final String GREEN = "\u001B[32m";
+    /** ANSI yellow color sequence for medium complexity. */
     public static final String YELLOW = "\u001B[33m";
+    /** ANSI red color sequence for high complexity. */
     public static final String RED = "\u001B[31m";
+    /** ANSI bold text formatting sequence. */
     public static final String BOLD = "\u001B[1m";
+    /** ANSI cyan color sequence for headers. */
     public static final String CYAN = "\u001B[36m";
+
+    /**
+     * Private constructor to prevent instantiation of utility class.
+     */
+    private ComplexityHeatmap() {
+    }
 
     /**
      * Resolves the appropriate ANSI color string based on the given complexity value.

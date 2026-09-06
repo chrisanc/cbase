@@ -10,10 +10,24 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 /**
- * Logics for the file downloading of internet files.
- * Used for the model local downloads using commands.
- * */
+ * Implementation of {@link FileDownloader} utilizing Java 21 HTTP Client for streaming downloads
+ * with real-time console progress output.
+ */
 public class FileDownloaderImpl implements FileDownloader {
+
+    /**
+     * Default constructor for FileDownloaderImpl.
+     */
+    public FileDownloaderImpl() {
+    }
+
+    /**
+     * Downloads a file from remote URL over HTTP with progress indicator and saves to local target path.
+     *
+     * @param from remote source URL
+     * @param targetPath local destination file path
+     * @throws RuntimeException if an I/O error occurs during downloading or writing
+     */
     @Override
     public void download(String from, String targetPath) {
         // Create the attributes for the HTTP request
@@ -58,26 +72,37 @@ public class FileDownloaderImpl implements FileDownloader {
             System.out.println("\n");
 
         } catch (IOException e) {
-            System.err.println("Error writing the changes...");
-            System.exit(1);
+            System.err.println("[ERROR] Error writing downloaded file contents: " + e.getMessage());
+            throw new RuntimeException("Download failed", e);
         } finally {
             client.close();
         }
     }
 
+    /**
+     * Builds and configures an HTTP client instance following redirect policies.
+     *
+     * @return configured {@link HttpClient} instance
+     */
     private HttpClient getHttpClient() {
         return HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     }
 
+    /**
+     * Executes HTTP GET request and returns input stream response.
+     *
+     * @param client HTTP client instance
+     * @param request HTTP GET request object
+     * @return {@link HttpResponse} containing response input stream
+     */
     private HttpResponse<InputStream> createResponseObject(HttpClient client, HttpRequest request) {
-        HttpResponse<InputStream> response;
         try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new RuntimeException("HTTP request execution failed", e);
         }
-        return response;
     }
 }

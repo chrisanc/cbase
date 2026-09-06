@@ -15,15 +15,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Singleton implementation of {@link SyntaxTree} using JavaParser to analyze Java 21 Abstract Syntax Trees
+ * and calculate method-level cyclomatic complexity.
+ */
 public class JavaTreeImpl implements SyntaxTree {
     private static JavaTreeImpl instance;
-    private JavaTreeImpl() {}
 
+    private JavaTreeImpl() {
+    }
+
+    /**
+     * Gets the singleton instance of JavaTreeImpl.
+     *
+     * @return {@link JavaTreeImpl} instance
+     */
     public static JavaTreeImpl getInstance() {
         if (instance == null) instance = new JavaTreeImpl();
         return instance;
     }
 
+    /**
+     * Parses Java source code using JavaParser with Java 21 language level configuration,
+     * extracts method declarations, calculates cyclomatic complexity, and populates script methods.
+     *
+     * @param script {@link CodeScript} instance containing Java source code to analyze
+     */
     @Override
     public void analyze(CodeScript script) {
         // Configure Java 21 parsing
@@ -53,6 +70,11 @@ public class JavaTreeImpl implements SyntaxTree {
         script.setMethods(methods);
     }
 
+    /**
+     * Calculates McCabe cyclomatic complexity by inspecting decision nodes (loops, conditionals, logic operators, try blocks).
+     *
+     * @param method {@link Method} instance to evaluate
+     */
     @Override
     public void calculateCyclicalComplexity(Method method) {
         if (method.getBody() == null) return;

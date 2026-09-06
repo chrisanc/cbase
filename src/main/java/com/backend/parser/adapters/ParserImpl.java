@@ -10,6 +10,10 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 
+/**
+ * Implementation of the {@link Parser} port for traversing source code repositories,
+ * filtering unwanted directories, reading file contents, and parallelizing AST parsing via Java 21 Virtual Threads.
+ */
 public final class ParserImpl implements Parser {
     // Save the current working directory
     private final String workingDir;
@@ -17,6 +21,10 @@ public final class ParserImpl implements Parser {
     private final HashSet<String> dirsToAvoid;
     // Define a regex pattern for valid scripts
     private final Pattern validScriptPattern;
+
+    /**
+     * Default constructor initializing working directory, default directory exclusions, and Java file matching pattern.
+     */
     public ParserImpl() {
         this.workingDir = System.getProperty("user.dir");
         this.dirsToAvoid = new HashSet<>(Set.of(
@@ -26,9 +34,10 @@ public final class ParserImpl implements Parser {
     }
 
     /**
-     * readFileSystem walks through the file system of the current directory
-     * and extract the code of certain programming languages for its analysis.
-     * */
+     * Traverses the project filesystem using depth-first search (DFS) to collect supported source files.
+     *
+     * @return list of discovered {@link CodeScript} instances
+     */
     @Override
     public List<CodeScript> readFileSystem() {
         // Get the path of the working dir
@@ -42,8 +51,11 @@ public final class ParserImpl implements Parser {
         // DFS implementation on the file system
         while (!stack.empty()) {
             root = stack.pop();
+            File[] files = root.listFiles();
+            if (files == null) continue;
+
             // Manage the dir files
-            for (File f : Objects.requireNonNull(root.listFiles())) {
+            for (File f : files) {
                 // Manage directories
                 if (f.isDirectory()) {
                     if (!this.dirsToAvoid.contains(f.getName())) stack.push(f);
@@ -62,9 +74,10 @@ public final class ParserImpl implements Parser {
     }
 
     /**
-     * Parse method parses a file and extracts its information. Virtual Threads.
-     * Uses AST implementations for this.
-     * */
+     * Parses the AST for each script concurrently using Java 21 Virtual Threads.
+     *
+     * @param scripts list of {@link CodeScript} objects to process
+     */
     @Override
     public void parse(List<CodeScript> scripts) {
         List<Thread> threads = new ArrayList<>();
@@ -81,28 +94,33 @@ public final class ParserImpl implements Parser {
             try {
                 thread.join();
             } catch (InterruptedException e) {
-                System.err.println("A thread was interrupted...");
+                System.err.println("[WARN] Parsing thread interrupted: " + e.getMessage());
+                Thread.currentThread().interrupt();
             }
         }
     }
 
     /**
-     * Function used to extract the content of a script.
-     * Using java.nio.Files readString method.
-     * */
+     * Helper method to read the raw text content of a file using {@link Files#readString(Path)}.
+     *
+     * @param path target file path string
+     * @return raw content string, or empty string if reading fails
+     */
     private String readFileContent(String path) {
         try {
             return Files.readString(Path.of(path));
         } catch (IOException e) {
-            System.err.println("Error reading the file...");
+            System.err.println("[ERROR] Error reading file content at " + path + ": " + e.getMessage());
         }
         return "";
     }
 
     /**
-     * Returns the SyntaxTree implementation to use.
-     * Depends on the programming language the script was written in.
-     * */
+     * Resolves the appropriate {@link SyntaxTree} implementation according to file extension.
+     *
+     * @param ext file extension identifier string
+     * @return matching {@link SyntaxTree} implementation, or null if unsupported
+     */
     private SyntaxTree getSyntaxTree(String ext) {
         return switch (ext) {
             case "java" -> JavaTreeImpl.getInstance();

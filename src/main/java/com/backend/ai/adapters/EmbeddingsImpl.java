@@ -9,16 +9,26 @@ import com.backend.ai.ports.LLM;
 import com.backend.types.FilePath;
 
 /**
- * Implementation of embeddings based on tokens
- * Using Java Deep Learning framework
- * */
+ * Implementation of vector embeddings generation based on tokenized input,
+ * utilizing the Deep Java Library (DJL) ONNX runtime engine.
+ */
 public class EmbeddingsImpl implements Embeddings {
     // Load the model in-memory (model-in, model-out types)
     private final LLM<NDList, NDList> llm = new LLMImpl<>(
             NDList.class, NDList.class, FilePath.LOCAL_CACHE.getValue("models", "minilm"), null
     );
+
     /**
-     * Takes raw tokens and gives them a meaning (creating embeddings)
+     * Default constructor initializing EmbeddingsImpl.
+     */
+    public EmbeddingsImpl() {
+    }
+
+    /**
+     * Takes raw tokens and generates a dense vector embedding using MiniLM model inference.
+     *
+     * @param tokens tokenized input representation
+     * @return float array containing the 384-dimensional vector embedding
      */
     @Override
     public float[] embedTokens(Token tokens) {
@@ -31,6 +41,13 @@ public class EmbeddingsImpl implements Embeddings {
         return this.meanPooling(predictions, 384);
     }
 
+    /**
+     * Performs mean pooling across embedding tensors along dimension 0.
+     *
+     * @param tensor output NDList from model prediction
+     * @param vectorSize expected embedding vector size
+     * @return pooled float array embedding
+     */
     @Override
     public float[] meanPooling(NDList tensor, int vectorSize) {
         try (NDArray arr = tensor.getFirst().squeeze()) {
@@ -41,6 +58,12 @@ public class EmbeddingsImpl implements Embeddings {
         }
     }
 
+    /**
+     * Helper method to construct DJL NDList tensors from variable long arrays.
+     *
+     * @param arrays array sequences to convert into NDList
+     * @return constructed NDList tensor
+     */
     private NDList buildTensor(long[]... arrays) {
         NDList tensor = new NDList();
         try (NDManager manager = NDManager.newBaseManager()) {
