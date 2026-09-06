@@ -50,6 +50,6 @@ public class ScanReportFormatterTest {
         String report = ScanReportFormatter.generateReport(List.of(script));
 
         assertNotNull(report);
-        assertTrue(report.contains("No high-risk cyclomatic complexity hotspots detected!"));
+        assertTrue(report.contains("No high-risk cyclomatic complexity hotspots detected"));
     }
 }

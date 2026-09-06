@@ -6,18 +6,27 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 @Command(
-        name = "cbase", description = "Let CBase walk you through your project :D.",
+        name = "cbase", description = "Let CBase walk you through your project.",
         version = "v0.0.1 beta", footer = "Written by: Christian Sanchez. 2026.",
         subcommands = {Scan.class, Query.class}, mixinStandardHelpOptions = true
 )
+/**
+ * Main entry point and root Picocli command for the CBase command-line application.
+ */
 public class CBase implements Runnable {
+
+    /**
+     * Main application entry point.
+     *
+     * @param args command line arguments passed to the application
+     */
     public static void main(String[] args) {
         int exitCode = new CommandLine(new CBase()).execute(args);
         System.exit(exitCode);
     }
 
     /**
-     * Runs this operation.
+     * Executes default root command operation when no subcommand is specified.
      */
     @Override
     public void run() {

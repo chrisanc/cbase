@@ -96,8 +96,8 @@ public class VectorDBImpl implements VectorDB {
                 String complexity = retrievedDoc.get("complexity");
                 String content = retrievedDoc.get("content");
 
-                builder.append("### 📄 ")
-                       .append(type != null && type.equals("method") ? "Method Symbol: `" + symbol + "` in " : "File: ")
+                builder.append("### Code Chunk: ")
+                       .append(type != null && type.equals("method") ? "Method Symbol `" + symbol + "` in " : "File ")
                        .append(path).append("\n");
                 if (complexity != null && !complexity.equals("0")) {
                     builder.append("**Cyclomatic Complexity:** ").append(complexity).append("\n");
